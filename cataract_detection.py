@@ -4,11 +4,6 @@ from tkinter import filedialog
 import streamlit as st
 import numpy as np
 from tensorflow.keras.models import load_model
-import tensorflow as tf
-from tensorflow.keras.preprocessing.image import ImageDataGenerator
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense
-from tensorflow.keras.optimizers.experimental import RMSprop
 from keras.preprocessing import image
 
 def load_classification_model():
@@ -17,40 +12,46 @@ def load_classification_model():
     return model
 
 def eyes_detection(uploaded_image):
-    image = cv2.imread(uploaded_image)
+    image = cv2.imdecode(np.fromstring(uploaded_image.read(), np.uint8), 1)
 
     if image is None:
         print(f"Failed to load image: {uploaded_image}")
         return
 
-    # Konversi gambar ke skala keabuan (grayscale)
+    # Convert the image to grayscale
     gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    # Inisialisasi detektor mata Haar Cascade
+    # Initialize the Haar Cascade eye detector
     eye_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_eye.xml')
 
-    # Deteksi mata dalam gambar
+    # Detect eyes in the image
     eyes = eye_cascade.detectMultiScale(gray_image)
 
     if len(eyes) > 0:
-        # Gambar kotak di sekitar mata yang terdeteksi
+        # Draw rectangles around the detected eyes
         for (x, y, w, h) in eyes:
             cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
 
-        # Tampilkan gambar yang telah diolah
-        print('Mata Terdeteksi')
-        cataract_detection()
+        # Display the processed image
+        st.image(image, channels="BGR", caption="Detected Eyes")
+
+        # Perform cataract detection
+        model = load_classification_model()
+        result = cataract_detection(model, gray_image)
+        st.write("Cataract Detection Result:", result)
     else:
-        print("Tidak ada mata yang terdeteksi.")
-        main()
+        st.write("No eyes detected.")
 
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+def cataract_detection(model, gray_image):
+    resized_image = cv2.resize(gray_image, (94, 55))
+    # Add a channel dimension to the image
+    resized_image = np.expand_dims(resized_image, axis=-1)
+    # Add a batch dimension (assuming you're processing a single image)
+    resized_image = np.expand_dims(resized_image, axis=0)
+    # Expand the last axis to have a value of 3
+    resized_image = np.repeat(resized_image, 3, axis=-1)
 
-def cataract_detection(model, image):
-    image = np.array(image.resize((94, 55)))
-    image = np.expand_dims(image, axis=0)
-    result = model.predict(image)
+    result = model.predict(resized_image)
     if result > 0.5:
         return 'normal'
     else:
@@ -59,18 +60,11 @@ def cataract_detection(model, image):
 def main():
     st.title("Cataract Detection")
 
-    # Unggah gambar dari pengguna
+    # Upload an image from the user
     uploaded_image = st.file_uploader("Select an image", type=["jpg", "jpeg", "png"])
 
     if uploaded_image is not None:
         eyes_detection(uploaded_image)
-
-        # Lakukan klasifikasi
-        model = load_classification_model()
-        result = cataract_detection(model, image)
-
-        # Tampilkan hasil klasifikasi
-        st.write("Hasil Klasifikasi:", result)
 
 if __name__ == "__main__":
     main()
