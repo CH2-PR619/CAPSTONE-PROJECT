@@ -16,23 +16,11 @@ def load_classification_model():
     model = load_model(model_path)
     return model
 
-def cataract_detection(model, image):
-    # Proses gambar sesuai kebutuhan Anda sebelum dilakukan klasifikasi
-    # Contoh: Ubah ukuran gambar menjadi dimensi yang diharapkan oleh model
-    # Jangan lupa untuk normalisasi jika diperlukan
-    image = np.array(image.resize((94, 55)))
-    image = np.expand_dims(image, axis=0)
-    result = model.predict(image)
-    if result > 0.5:
-        return 'normal'
-    else:
-        return 'cataract'
-
-def eyes_detection(image_path):
-    image = cv2.imread(image_path)
+def eyes_detection(uploaded_image):
+    image = cv2.imread(uploaded_image)
 
     if image is None:
-        print(f"Failed to load image: {image_path}")
+        print(f"Failed to load image: {uploaded_image}")
         return
 
     # Konversi gambar ke skala keabuan (grayscale)
@@ -59,6 +47,15 @@ def eyes_detection(image_path):
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
+def cataract_detection(model, image):
+    image = np.array(image.resize((94, 55)))
+    image = np.expand_dims(image, axis=0)
+    result = model.predict(image)
+    if result > 0.5:
+        return 'normal'
+    else:
+        return 'cataract'
+
 def main():
     st.title("Cataract Detection")
 
@@ -66,11 +63,7 @@ def main():
     uploaded_image = st.file_uploader("Select an image", type=["jpg", "jpeg", "png"])
 
     if uploaded_image is not None:
-        eyes_detection()
-
-        # Konversi gambar ke dalam format yang dapat diproses oleh model
-        image = cv2.imdecode(np.asarray(bytearray(uploaded_image.read()), dtype=np.uint8), 1)
-        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)  # Ubah format warna
+        eyes_detection(uploaded_image)
 
         # Lakukan klasifikasi
         model = load_classification_model()
