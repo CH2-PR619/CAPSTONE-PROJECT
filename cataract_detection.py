@@ -39,7 +39,7 @@ def eyes_detection(uploaded_image):
 
         # Tampilkan gambar yang telah diolah
         print('Mata Terdeteksi')
-        cataract_detection(model, image)
+        cataract_detection()
     else:
         print("Tidak ada mata yang terdeteksi.")
         main()
